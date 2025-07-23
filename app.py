@@ -1,34 +1,57 @@
 import streamlit as st
 import pandas as pd
-from models import model_rsm, model_sovova
 
-st.set_page_config(page_title="SIMEXTRACT", layout="wide")
-st.title("🧪 Supercritical CO₂ Extraction Simulator")
-
-# Sidebar – Simulation Settings
+# 🎯 Sidebar : Objectif de rendement
 st.sidebar.header("🎯 Simulation Settings")
 target_yield = st.sidebar.number_input("Target Yield (%)", min_value=0.0, max_value=100.0, value=18.5, step=0.1)
-show_advanced = st.sidebar.checkbox("Show advanced factors")
 
-# Main – Input Parameters
+# 📦 Paramètres utilisateur
+st.title("🧪 Supercritical CO₂ Extraction - SIMEXTRACT")
+
 col1, col2 = st.columns(2)
-
 with col1:
-    T = st.number_input("Temperature (°C)", min_value=10, max_value=100, value=60)
-    dp = st.number_input("Particle Size (mm)", min_value=0.1, max_value=5.0, value=0.2, step=0.1)
+    T = st.number_input("Temperature (°C)", 30, 100, value=60)
+    dp = st.number_input("Particle Size (mm)", 0.1, 5.0, value=0.2, step=0.1)
 with col2:
-    time = st.number_input("Extraction Time (min)", min_value=10, max_value=300, value=60)
-    material = st.selectbox("Material", ["Date Seed", "Lavender", "Rosemary"])
+    time = st.number_input("Extraction Time (min)", 10, 180, value=60)
+    material = st.selectbox("Material", ["Date Seed", "Lavender", "Chamomile"])
 
-if show_advanced:
-    with st.expander("Advanced Parameters"):
-        P = st.slider("Pressure (bar)", min_value=50, max_value=400, value=150)
-        flow = st.slider("CO₂ Flow Rate (kg/h)", min_value=1, max_value=80, value=10)
-else:
-    P = 150
-    flow = 10
+flow = st.slider("CO₂ Flow Rate (kg/h)", 1, 10, value=5)
+pressure = st.slider("Pressure (bar)", 50, 400, value=150)
 
-# Run models and display predictions
+# 📊 Modèle RSM
+def model_rsm(target_yield, P, T, dp, flow, time):
+    yield_rsm = 0.02 * P + 0.5 * T - 5 * dp + 2 * flow + 0.1 * time
+    return {
+        "Model": "RSM",
+        "Estimated Yield (%)": round(yield_rsm, 2),
+        "Recommended P (bar)": P,
+        "Recommended T (°C)": T
+    }
+
+# 📊 Modèle Sovova simplifié
+def model_sovova(target_yield, P, T, dp, flow, time):
+    yield_sovova = 0.01 * P + 0.3 * T - 4 * dp + 1.5 * flow + 0.15 * time
+    return {
+        "Model": "Sovova",
+        "Estimated Yield (%)": round(yield_sovova, 2),
+        "Recommended P (bar)": P,
+        "Recommended T (°C)": T
+    }
+
+# ▶️ Simulation
+if st.button("Run Simulation"):
+    results = []
+    results.append(model_rsm(target_yield, pressure, T, dp, flow, time))
+    results.append(model_sovova(target_yield, pressure, T, dp, flow, time))
+
+    st.subheader("📈 Model Predictions")
+    df = pd.DataFrame(results)
+    st.dataframe(df)
+
+    csv = df.to_csv(index=False).encode("utf-8")
+    st.download_button("📥 Download Results (CSV)", csv, "simulation_results.csv", "text/csv")
+    
 st.subheader("📊 Model Predictions")
 
 results = []
