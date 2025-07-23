@@ -1,4 +1,4 @@
-MODELES INTÉGRÉS DIRECTEMENT
+# MODELES INTÉGRÉS DIRECTEMENT
 
 import streamlit as st import pandas as pd
 
