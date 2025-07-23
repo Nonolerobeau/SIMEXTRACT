@@ -2,22 +2,13 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-
--------------------------
-
 MODELES INTÉGRÉS DIRECTEMENT
-
--------------------------
 
 def rsm_model(P, T, dp, flow, time): # Coefficients fictifs (à remplacer par calibration réelle) yield_est = 0.01 * P + 0.05 * T - 0.2 * dp + 0.3 * flow + 0.1 * time return { "Model": "RSM", "Estimated Yield (%)": round(yield_est, 2), "Recommended P (bar)": P, "Recommended T (C)": T }
 
 def sovova_model(P, T, dp, flow, time): # Formule simplifiée inspirée de Sovová yield_est = 0.008 * P + 0.04 * T - 0.1 * dp + 0.25 * flow + 0.08 * time return { "Model": "Sovova", "Estimated Yield (%)": round(yield_est, 2), "Recommended P (bar)": P, "Recommended T (C)": T }
-
--------------------------
-
+    
 INTERFACE STREAMLIT
-
--------------------------
 
 st.set_page_config(page_title="SIMEXTRACT", layout="wide") st.title("🧪 SIMEXTRACT - CO₂ Supercritical Extraction Simulator")
 
