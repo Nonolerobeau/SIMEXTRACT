@@ -1,45 +1,45 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
-
 MODELES INTÉGRÉS DIRECTEMENT
 
-def rsm_model(P, T, dp, flow, time): # Coefficients fictifs (à remplacer par calibration réelle) yield_est = 0.01 * P + 0.05 * T - 0.2 * dp + 0.3 * flow + 0.1 * time return { "Model": "RSM", "Estimated Yield (%)": round(yield_est, 2), "Recommended P (bar)": P, "Recommended T (C)": T }
+import streamlit as st import pandas as pd
 
-def sovova_model(P, T, dp, flow, time): # Formule simplifiée inspirée de Sovová yield_est = 0.008 * P + 0.04 * T - 0.1 * dp + 0.25 * flow + 0.08 * time return { "Model": "Sovova", "Estimated Yield (%)": round(yield_est, 2), "Recommended P (bar)": P, "Recommended T (C)": T }
-    
-INTERFACE STREAMLIT
+------------------ MODELES ------------------
 
-st.set_page_config(page_title="SIMEXTRACT", layout="wide") st.title("🧪 SIMEXTRACT - CO₂ Supercritical Extraction Simulator")
+def model_rsm(P, T, dp, flow, time, **kwargs): # Modèle simplifié RSM, exemple yield_rsm = 0.1 * P + 0.05 * T - 2 * dp + 0.3 * flow + 0.2 * time return max(yield_rsm, 0)
 
-with st.sidebar: st.header("🎯 Simulation Settings") target_yield = st.number_input("Target Yield (%)", min_value=0.0, value=18.5) show_advanced = st.checkbox("Show advanced factors")
+def model_sovova(P, T, dp, flow, time, **kwargs): # Modèle simplifié Sovova, exemple yield_sovova = 0.08 * P + 0.04 * T - 1.5 * dp + 0.25 * flow + 0.1 * time return max(yield_sovova, 0)
 
-st.divider()
-st.markdown("#### 📦 Parameters")
-T = st.number_input("Temperature (C)", value=60)
-time = st.number_input("Extraction Time (min)", value=60)
-dp = st.number_input("Particle Size (mm)", value=0.2)
-material = st.selectbox("Material", ["Date Seed", "Lavender", "Custom"])
+------------------ APP ------------------
 
-if show_advanced:
-    P = st.slider("Pressure (bar)", 100, 400, 150)
-    flow = st.slider("CO₂ Flow Rate (kg/h)", 1, 30, 10)
-else:
-    P = 150
-    flow = 10
+st.set_page_config(page_title="SIMEXTRACT", layout="wide") st.title("🎯 Supercritical CO₂ Extraction Simulator")
+
+st.sidebar.header("Simulation Settings") target_yield = st.sidebar.number_input("Target Yield (%)", value=18.5, step=0.1)
+
+with st.sidebar.expander("⚙️ Show advanced factors"): dp = st.number_input("Particle Size (mm)", value=0.2) flow = st.number_input("CO₂ Flow Rate (kg/h)", value=5.0)
+
+col1, col2, col3 = st.columns(3)
+
+with col1: P = st.number_input("Pressure (bar)", value=150) with col2: T = st.number_input("Temperature (°C)", value=60) with col3: time = st.number_input("Extraction Time (min)", value=60)
+
+------------------ CALCUL ------------------
 
 if st.button("Run Simulation"): results = []
 
-# Appliquer chaque modèle
-for model_func in [rsm_model, sovova_model]:
-    res = model_func(P, T, dp, flow, time)
-    results.append(res)
+try:
+    y_rsm = model_rsm(P, T, dp, flow, time)
+    results.append({"Model": "RSM", "Estimated Yield (%)": round(y_rsm, 2), "Recommended P": P, "Recommended T": T})
+except Exception as e:
+    st.error(f"❌ Error RSM model: {e}")
 
-df = pd.DataFrame(results)
+try:
+    y_sovova = model_sovova(P, T, dp, flow, time)
+    results.append({"Model": "Sovova", "Estimated Yield (%)": round(y_sovova, 2), "Recommended P": P, "Recommended T": T})
+except Exception as e:
+    st.error(f"❌ Error Sovova model: {e}")
 
-st.subheader("📊 Model Predictions")
-st.dataframe(df, use_container_width=True)
+if results:
+    st.subheader("📊 Model Predictions")
+    df_results = pd.DataFrame(results)
+    st.dataframe(df_results, use_container_width=True)
+    csv = df_results.to_csv(index=False).encode("utf-8")
+    st.download_button("📥 Download Results (CSV)", data=csv, file_name="simextract_results.csv", mime="text/csv")
 
-st.download_button("📥 Download Results (CSV)", data=df.to_csv(index=False), file_name="simextract_results.csv")
-
-else: st.info("Click 'Run Simulation' to get model predictions.")
