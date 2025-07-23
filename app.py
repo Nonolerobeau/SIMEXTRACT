@@ -1,53 +1,55 @@
-
 import streamlit as st
 import pandas as pd
-import math
-
-# Import des modules de modèles
 from models import model_rsm, model_sovova
 
 st.set_page_config(page_title="SIMEXTRACT", layout="wide")
-st.title("SIMEXTRACT – Estimation de rendement d'extraction au CO₂")
+st.title("🧪 Supercritical CO₂ Extraction Simulator")
 
-st.markdown(
-    "Entrez les paramètres d'extraction et le **rendement cible** souhaité.\n"
-    "L'application calcule le rendement estimé selon deux modèles : **RSM** et **Sovová**,\n"
-    "et vous propose les ajustements nécessaires pour l'atteindre."
-)
+# Sidebar – Simulation Settings
+st.sidebar.header("🎯 Simulation Settings")
+target_yield = st.sidebar.number_input("Target Yield (%)", min_value=0.0, max_value=100.0, value=18.5, step=0.1)
+show_advanced = st.sidebar.checkbox("Show advanced factors")
 
-# Entrées utilisateur
-target_yield = st.number_input("🎯 Rendement cible (%)", 0.0, 100.0, 10.0, 1.0)
-P = st.number_input("🧪 Pression (bar)", 1.0, 1000.0, 200.0)
-T_celsius = st.number_input("🌡️ Température (°C)", 0.0, 300.0, 50.0)
-dp = st.number_input("🔹 Taille des particules (mm)", 0.1, 10.0, 0.6)
-t = st.number_input("⏱️ Durée d'extraction (min)", 0.0, 300.0, 60.0)
+# Main – Input Parameters
+col1, col2 = st.columns(2)
 
-T_kelvin = T_celsius + 273.15
+with col1:
+    T = st.number_input("Temperature (°C)", min_value=10, max_value=100, value=60)
+    dp = st.number_input("Particle Size (mm)", min_value=0.1, max_value=5.0, value=0.2, step=0.1)
+with col2:
+    time = st.number_input("Extraction Time (min)", min_value=10, max_value=300, value=60)
+    material = st.selectbox("Material", ["Date Seed", "Lavender", "Rosemary"])
 
-# Calculs modèles
-rsm_yield = model_rsm.predict_yield(P, T_kelvin, dp)
-sov_yield = model_sovova.predict_yield(P, T_celsius, dp, t)
-
-# Suggestions
-Y_MAX = model_sovova.Y_MAX
-suggestion_rsm = "✅ Rendement cible atteint." if rsm_yield >= target_yield else "🔧 Augmenter pression / réduire granulométrie."
-if target_yield > Y_MAX:
-    suggestion_sov = f"⚠️ Cible irréaliste (> {Y_MAX}%)."
+if show_advanced:
+    with st.expander("Advanced Parameters"):
+        P = st.slider("Pressure (bar)", min_value=50, max_value=400, value=150)
+        flow = st.slider("CO₂ Flow Rate (kg/h)", min_value=1, max_value=80, value=10)
 else:
-    if sov_yield >= target_yield:
-        suggestion_sov = "✅ Cible atteinte dans le temps imparti."
-    else:
-        k = 0.005 * (P / 200.0) * ((0.6 / dp) ** 2)
-        time_needed = -math.log(1 - (target_yield / Y_MAX)) / k if k > 0 and (target_yield / Y_MAX) < 1 else float("inf")
-        suggestion_sov = f"⏱️ Allonger le temps à ~{int(time_needed)} min." if time_needed < float("inf") else "⚠️ Objectif inatteignable dans ce contexte."
+    P = 150
+    flow = 10
 
-# Affichage résultats
-st.subheader("📊 Résultats")
+# Run models and display predictions
+st.subheader("📊 Model Predictions")
 
-results = [
-    {"Modèle": "RSM", "Rendement estimé (%)": round(rsm_yield, 2), "Suggestion": suggestion_rsm},
-    {"Modèle": "Sovová", "Rendement estimé (%)": round(sov_yield, 2), "Suggestion": suggestion_sov}
-]
+results = []
 
-df = pd.DataFrame(results).set_index("Modèle")
-st.table(df)
+try:
+    rsm_output = model_rsm.predict(target_yield, P, T, dp, flow, time)
+    results.append(rsm_output)
+except Exception as e:
+    st.error(f"Error running RSM model: {e}")
+
+try:
+    sovova_output = model_sovova.predict(target_yield, P, T, dp, flow, time)
+    results.append(sovova_output)
+except Exception as e:
+    st.error(f"Error running Sovová model: {e}")
+
+if results:
+    df = pd.DataFrame(results)
+    st.dataframe(df)
+    csv = df.to_csv(index=False).encode('utf-8')
+    st.download_button("📅 Download Results", data=csv, file_name="simextract_results.csv", mime="text/csv")
+else:
+    st.info("No results to show yet.")
+
