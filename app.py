@@ -16,7 +16,7 @@ def calculate_balanced_yield(P, T, dp, F, t, compound='Tocopherol'):
     'Capsaicin': 11.0,
     'Linalool': 5.0,
     'Geraniol': 5.5
-}
+     }
 
     Y_max = Y_max_dict.get(compound, 15.0)
 
