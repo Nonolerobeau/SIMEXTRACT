@@ -3,13 +3,20 @@ import math
 
 # --- FONCTION PRINCIPALE : Modèle corrigé ---
 def calculate_balanced_yield(P, T, dp, F, t, compound='Tocopherol'):
-    Y_max_dict = {
-        'Tocopherol': 20.0,
-        'Beta-Carotene': 12.0,
-        'Lycopene': 10.0,
-        'Caffeine': 18.0,
-        'Curcumin': 15.0
-    }
+   Y_max_dict = {
+    'Tocopherol': 20.0,
+    'Beta-Carotene': 12.0,
+    'Lycopene': 10.0,
+    'Caffeine': 18.0,
+    'Curcumin': 15.0,
+    'Thymol': 6.0,
+    'Squalene': 14.0,
+    'Chlorophyll': 8.5,
+    'Rosmarinic Acid': 7.0,
+    'Capsaicin': 11.0,
+    'Linalool': 5.0,
+    'Geraniol': 5.5
+}
 
     Y_max = Y_max_dict.get(compound, 15.0)
 
